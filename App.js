@@ -1,51 +1,53 @@
-import React, {useState, useEffect} from 'react';
+import React from 'react';
 import {View, StyleSheet, Text} from 'react-native';
 import Geolocation from '@react-native-community/geolocation';
-import {API_KEY} from './weatherdata/WeatherApiKey';
 import Weather from './components/Weather';
+import {API_KEY} from './weatherdata/WeatherApiKey';
+class App extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      location: 'No location',
+      Longitude: 0,
+      Latitude: 0,
+      isLoading: false,
+      temperature: 0,
+      pressure: 0,
+      humidity: 0,
+      weatherCondition: 'Default',
+      error: null,
+    };
 
-function App() {
-  const [position, setPosition] = useState({
-    latitude: null,
-    longitude: null,
-  });
+    this.locationUpdated = this.locationUpdated.bind(this);
+  }
 
-  const [initialState, setInitial] = useState({
-    isLoading: false,
-    temperature: 0,
-    pressure: 0,
-    humidity: 0,
-    weatherCondition: 'Default',
-    error: null,
-  });
-
-  useEffect(() => {
-    getPosition();
-    console.log(position.latitude);
-    console.log(position.longitude);
-    fetchWeather();
-  }, [position.latitude, position.longitude]);
-
-  const getPosition = () => {
-    Geolocation.getCurrentPosition(pos => {
-      setPosition({
-        latitude: pos.coords.latitude,
-        longitude: pos.coords.longitude,
-      });
+  componentDidMount() {
+    // this.fetchWeather();
+    Geolocation.getCurrentPosition(this.locationUpdated, console.log, {
+      maximumAge: 10000,
+      enableHighAccuracy: false,
     });
-  };
+  }
 
-  function fetchWeather(lat = position.latitude, lon = position.longitude) {
-    console.log('a');
-    console.log(position.latitude);
-    console.log(position.longitude);
+  locationUpdated(location) {
+    console.log(location);
+    this.setState({
+      location: `Longitude: ${location.coords.longitude}, Latitude: ${location.coords.latitude}`,
+      Longitude: location.coords.longitude,
+      Latitude: location.coords.latitude,
+    });
+    this.fetchWeather();
+  }
+
+  fetchWeather(lat = this.state.Latitude, lon = this.state.Longitude) {
+    console.log('longitude', this.state.Longitude);
+    console.log('latitude', this.state.Latitude);
     fetch(
       `http://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&APPID=${API_KEY}&units=metric`,
     )
       .then(res => res.json())
       .then(json => {
-        console.log(json);
-        setInitial({
+        this.setState({
           temperature: json.main.temp,
           pressure: json.main.pressure,
           humidity: json.main.humidity,
@@ -53,24 +55,37 @@ function App() {
           isLoading: false,
         });
       });
+    1;
   }
-  return (
-    <View style={styles.container}>
-      <Text>Latitude: {position.latitude}</Text>
-      <Text>Longitude: {position.longitude}</Text>
 
-      {initialState.isLoading ? (
-        <Text>Fetching Weather Data</Text>
-      ) : (
-        <Weather
-          weather={initialState.weatherCondition}
-          temperature={initialState.temperature}
-          pressure={initialState.pressure}
-          humidity={initialState.humidity}
-        />
-      )}
-    </View>
-  );
+  render() {
+    const {
+      location,
+      temperature,
+      pressure,
+      humidity,
+      weatherCondition,
+      isLoading,
+    } = this.state;
+    console.log(this.state.Longitude);
+    console.log(this.state.Latitude);
+    return (
+      <View style={styles.container}>
+        <Text>{location}</Text>
+
+        {isLoading ? (
+          <Text>Fetching Weather Data</Text>
+        ) : (
+          <Weather
+            weather={weatherCondition}
+            temperature={temperature}
+            pressure={pressure}
+            humidity={humidity}
+          />
+        )}
+      </View>
+    );
+  }
 }
 
 const styles = StyleSheet.create({
